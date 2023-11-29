@@ -44,7 +44,7 @@ class StableVideo:
     def load_canny_model(
         self,
         base_cfg='ckpt/cldm_v15.yaml',
-        canny_model_cfg='ckpt/control_sd15_canny.pth',
+        canny_model_cfg='/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/ckpt/ControlNet/models/control_sd15_canny.pth',
     ):
         self.apply_canny = CannyDetector()
         canny_model = create_model(base_cfg).cpu()
@@ -55,7 +55,7 @@ class StableVideo:
     def load_depth_model(
         self,
         base_cfg='ckpt/cldm_v15.yaml',
-        depth_model_cfg='ckpt/control_sd15_depth.pth',
+        depth_model_cfg='/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/ckpt/ControlNet/models/control_sd15_depth.pth',
     ):
         self.apply_midas = MidasDetector()
         depth_model = create_model(base_cfg).cpu()
@@ -65,8 +65,10 @@ class StableVideo:
 
     def load_video(self, video_name):
         self.data = AtlasData(video_name)
-        save_name = f"data/{video_name}/{video_name}.mp4"
-        if not os.path.exists(save_name):
+        save_dir = f"/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/{video_name}"
+        save_name = os.path.join(save_dir, f"{video_name}.mp4")
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
             imageio.mimwrite(save_name, self.data.original_video.cpu().permute(0, 2, 3, 1))
             print("original video saved.")
         toIMG = transforms.ToPILImage()
@@ -156,7 +158,6 @@ class StableVideo:
                                 num_samples=1):
 
         self.canny_model = self.canny_model.cuda()
-        
         keyframes = [int(x) for x in keyframes.split(",")]
         if self.data is None:
             raise ValueError("Please load video first")
@@ -342,8 +343,8 @@ class StableVideo:
                 + (1 - self.data.all_alpha) * background_edit
         )
         id = time.time()
-        os.mkdir(f"log/{id}")
-        save_name = f"log/{id}/video.mp4"
+        os.mkdir(f"/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/outputs/{id}")
+        save_name = f"/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/outputs/{id}/video.mp4"
         imageio.mimwrite(save_name, (255 * output_video.detach().cpu()).to(torch.uint8).permute(0, 2, 3, 1))
         
         return save_name
@@ -351,8 +352,8 @@ class StableVideo:
 if __name__ == '__main__':
     with torch.cuda.amp.autocast():
         stablevideo = StableVideo(base_cfg="ckpt/cldm_v15.yaml",
-                                canny_model_cfg="ckpt/control_sd15_canny.pth",
-                                depth_model_cfg="ckpt/control_sd15_depth.pth",
+                                canny_model_cfg="/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/ckpt/ControlNet/models/control_sd15_canny.pth",
+                                depth_model_cfg="/proj/cloudrobotics-nest/users/x_ruiwa/eccv/baselines/stablevideo/ckpt/ControlNet/models/control_sd15_depth.pth",
                                 save_memory=True)
 
         stablevideo.load_canny_model()
@@ -370,10 +371,10 @@ if __name__ == '__main__':
                         foreground_atlas = gr.Image(label="Foreground Atlas", type="pil", height=216, width=384)
                         background_atlas = gr.Image(label="Background Atlas", type="pil", height=216, width=384)
                     load_video_button = gr.Button("Load Video")
-                    avail_video = [f.name for f in os.scandir("data") if f.is_dir()]
+                    avail_video = [f.name for f in os.scandir("/proj/cloudrobotics-nest/users/x_ruiwa/eccv/data_our/dataset_nov_27/short") if f.is_dir()]
                     video_name = gr.Radio(choices=avail_video,
                                         label="Select Example Videos",
-                                        value="car-turn")
+                                        value="car_turn_8")
                 with gr.Column():
                     gr.Markdown("### Write text prompt and advanced options for background and foreground. Click render.")
                     output_video = gr.Video(label="Output Video", interactive=False, height=432, width=768)
@@ -384,9 +385,13 @@ if __name__ == '__main__':
                     with gr.Row():
                         with gr.Column():
                             f_advance_run_button = gr.Button("Advanced Edit Foreground")
-                            f_prompt = gr.Textbox(label="Foreground Prompt", value="a picture of an orange suv")
+                            f_prompt = gr.Textbox(label="Foreground Prompt", value="a picture of a red porsche")
                             with gr.Accordion("Advanced Foreground Options", open=False):
-                                    adv_keyframes = gr.Textbox(label="keyframe", value="20, 40, 60")
+                                    # adv_keyframes = gr.Textbox(label="keyframe", value="20, 40, 60")
+                                    adv_keyframes = gr.Textbox(label="keyframe", value="2, 4, 6")
+                                    '''
+                                    NEED TO CHANGE!                                    
+                                    '''
                                     adv_atlas_resolution = gr.Slider(label="Atlas Resolution", minimum=1000, maximum=3000, value=2000, step=100)
                                     adv_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
                                     adv_low_threshold = gr.Slider(label="Canny low threshold", minimum=1, maximum=255, value=100, step=1)
@@ -402,7 +407,7 @@ if __name__ == '__main__':
                         
                         with gr.Column():
                             b_run_button = gr.Button("Edit Background")
-                            b_prompt = gr.Textbox(label="Background Prompt", value="winter scene, snowy scene, beautiful snow")
+                            b_prompt = gr.Textbox(label="Background Prompt", value="")
                             with gr.Accordion("Background Options", open=False):
                                 b_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
                                 b_detect_resolution = gr.Slider(label="Depth Resolution", minimum=128, maximum=1024, value=512, step=1)
@@ -412,7 +417,7 @@ if __name__ == '__main__':
                                 b_eta = gr.Number(label="eta (DDIM)", value=0.0)
                                 b_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed')
                                 b_n_prompt = gr.Textbox(label="Negative Prompt", value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
-                    
+
                         
                         
             # edit param

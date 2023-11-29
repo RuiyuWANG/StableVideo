@@ -22,7 +22,7 @@ from stablevideo.atlas_utils import (
 
 class AtlasData():
     def __init__(self, video_name):
-        with open(f"data/{video_name}/config.json", "r") as f:
+        with open(f"/proj/cloudrobotics-nest/users/x_ruiwa/eccv/data_our/dataset_nov_27/short/{video_name}/config.json", "r") as f:
             json_dict = json.load(f)
         try:
             maximum_number_of_frames = json_dict["number_of_frames"]
@@ -31,7 +31,7 @@ class AtlasData():
 
         config = {
             "device": "cuda",
-            "checkpoint_path": f"data/{video_name}/checkpoint",
+            "checkpoint_path": f"/proj/cloudrobotics-nest/users/x_ruiwa/eccv/data_our/dataset_nov_27/short/{video_name}/checkpoint",
             "resx": json_dict["resx"],
             "resy": json_dict["resy"],
             "maximum_number_of_frames": maximum_number_of_frames,
@@ -47,7 +47,7 @@ class AtlasData():
 
         self.min_size = min(self.config["resx"], self.config["resy"])
         self.max_size = max(self.config["resx"], self.config["resy"])
-        data_folder = f"data/{video_name}/{video_name}"
+        data_folder = f"/proj/cloudrobotics-nest/users/x_ruiwa/eccv/data_our/dataset_nov_27/short/{video_name}/{video_name}"
         self.original_video = load_video(
             data_folder,
             resize=(self.config["resy"], self.config["resx"]),
@@ -190,7 +190,6 @@ class AtlasData():
 
         self.config["crops_min_cover"] = 0.95
         self.config["grid_atlas_resolution"] = res
-        
         for cur_frame in keyframes:
             y_start, x_start, frame_h, frame_w = self.mask_boundaries[cur_frame].tolist()
             crop_size = (
